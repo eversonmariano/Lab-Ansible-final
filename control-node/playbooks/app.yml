@@ -16,6 +16,7 @@
         name: app
         comment: Usuario de aplicação
         uid: 500
+
     - name: Criação do diretório de app
       file:
         path: /opt/notes
@@ -32,33 +33,18 @@
         dest: /opt/notes
         clone: yes
         force: yes
-    - name: Configurar arquivo build.gradle com repositório Maven Central
-      template:
-        src: build.gradle
-        dest: /opt/notes/build.gradle
     - name: Configurar arquivo de propriedades para camada de banco de dados
       template:
         src: application.properties
         dest: /opt/notes/src/main/resources/application.properties
     - name: Gerar pacote da aplicação
-      command: /opt/gradle/gradle-7.2/bin/gradle -p /opt/notes gradle assemble
-      args:
-        chdir: /opt/notes
-      register: gradle_output
-      failed_when: gradle_output.rc != 0
+      command: mvn -f /opt/notes/pom.xml package
       become_user: app
-    - name: Registrar versão atual do pacote
-      shell:
-        cmd: /opt/gradle/gradle-7.2/bin/gradle -p /opt/notes properties | grep -E 'version:' | awk '{print $2}'
-        chdir: /opt/notes/
-        register: app_version
+    
     - name: Configurar serviço do Systemd
       template:
         src: etc/systemd/system/notes.service
         dest: /etc/systemd/system/notes.service
-        owner: root
-        group: root
-        mode: '0600'
       notify: reload daemon
     - name: Iniciar serviço notes
       service:
@@ -70,7 +56,7 @@
     - name: reload app
       systemd:
         state: restarted
-        daemon_reload: yes
+        daemon_reload: yes 
         name: 'notes'
     - name: reload daemon
       systemd:
